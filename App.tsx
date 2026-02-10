@@ -49,7 +49,9 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     if (!currentUser) {
-      if (currentPage === 'login') return <Auth onAuth={handleAuth} onBack={() => setCurrentPage('landing')} />;
+      if (currentPage === 'login-recruiter') return <Auth onAuth={handleAuth} onBack={() => setCurrentPage('landing')} initialRole="recruiter" />;
+      if (currentPage === 'login-candidate') return <Auth onAuth={handleAuth} onBack={() => setCurrentPage('landing')} initialRole="interviewee" />;
+      if (currentPage === 'login') return <Auth onAuth={handleAuth} onBack={() => setCurrentPage('landing')} />; // Header button default
       return <Landing onNavigate={setCurrentPage} />;
     }
 

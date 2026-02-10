@@ -3,14 +3,20 @@ import React, { useState } from 'react';
 import { Button, Input, Card } from '../components/Shared';
 import { db } from '../services/db';
 
-export const Auth: React.FC<{ onAuth: () => void, onBack: () => void }> = ({ onAuth, onBack }) => {
+interface AuthProps {
+  onAuth: () => void;
+  onBack: () => void;
+  initialRole?: 'recruiter' | 'interviewee';
+}
+
+export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recruiter' }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [candidateCode, setCandidateCode] = useState('');
-  const [role, setRole] = useState<'recruiter' | 'interviewee'>('recruiter');
+  const [role, setRole] = useState<'recruiter' | 'interviewee'>(initialRole);
 
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();

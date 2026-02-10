@@ -96,7 +96,7 @@ export const Landing: React.FC<{ onNavigate: (page: string) => void }> = ({ onNa
 
         {/* Contact Button */}
         <button
-          onClick={() => onNavigate('login')}
+          onClick={() => onNavigate('login-recruiter')}
           className="px-6 py-2.5 rounded-full transition-all hover:scale-105 hover:bg-white/5 hover:border-white/40 group"
           style={{
             background: "transparent",
@@ -223,25 +223,42 @@ export const Landing: React.FC<{ onNavigate: (page: string) => void }> = ({ onNa
             Automate your initial screening with the world's most advanced verbal AI interviewer. Objective, bias-free, and infinitely scalable.
           </p>
 
-          {/* CTA Button */}
-          <motion.button
+          {/* CTA Buttons - UPDATED */}
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => onNavigate('login')}
-            className="px-10 py-4 rounded-xl transition-all group relative overflow-hidden"
-            style={{
-              background: "#007AFF",
-              fontSize: "16px",
-              fontWeight: 600,
-              color: "#FFFFFF",
-              boxShadow: "0 10px 40px rgba(0, 122, 255, 0.3)",
-            }}
+            className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-4"
           >
-            <span className="relative z-10">Start Hiring Now</span>
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-          </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => onNavigate('login-recruiter')}
+              className="px-10 py-4 rounded-xl transition-all group relative overflow-hidden"
+              style={{
+                background: "#007AFF",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#FFFFFF",
+                boxShadow: "0 10px 40px rgba(0, 122, 255, 0.3)",
+              }}
+            >
+              <span className="relative z-10">Start Hiring Now</span>
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => onNavigate('login-candidate')}
+              className="px-10 py-4 rounded-xl transition-all group relative overflow-hidden glass border border-white/20 hover:bg-white/10"
+              style={{
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#FFFFFF",
+              }}
+            >
+              <span className="relative z-10">Start Your Interview</span>
+            </motion.button>
+          </motion.div>
         </motion.div>
       </div>
 
