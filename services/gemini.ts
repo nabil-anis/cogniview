@@ -2,12 +2,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { EvaluationParameter } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Initialize lazily to prevent crash on module load if env is missing
+const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export const aiService = {
   async generateParameters(jobTitle: string): Promise<EvaluationParameter[]> {
     try {
-      const response = await ai.models.generateContent({
+      const response = await getAi().models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Generate 4 professional evaluation parameters for the job role: "${jobTitle}". 
         Include a name, a short description, and suggested weights (total must sum to 100).`,
@@ -37,7 +38,7 @@ export const aiService = {
 
   async rephraseQuestion(original: string): Promise<string[]> {
     try {
-      const response = await ai.models.generateContent({
+      const response = await getAi().models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Rephrase this interview question in 3 different ways while maintaining the same professional intent: "${original}"`,
         config: {
@@ -81,7 +82,7 @@ export const aiService = {
     `;
 
     try {
-      const response = await ai.models.generateContent({
+      const response = await getAi().models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
