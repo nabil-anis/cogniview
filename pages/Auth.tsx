@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button, Input, Card } from '../components/Shared';
 import { db } from '../services/db';
+import { Profile } from '../types';
 
 interface AuthProps {
   onAuth: () => void;
@@ -17,64 +18,90 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
   const [isLogin, setIsLogin] = useState(true);
   const [candidateCode, setCandidateCode] = useState('');
   const [role, setRole] = useState<'recruiter' | 'interviewee'>(initialRole);
+  const [loading, setLoading] = useState(false);
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
-    if (role === 'recruiter' && !isLogin && !companyName.trim()) {
-      alert("Company Name is required for Recruiter registration.");
+    if (password.length < 5) {
+      alert("Security Requirement: Password must be at least 5 characters.");
       return;
     }
 
-    let profile = db.profiles.getByEmail(email);
-    
-    if (!profile) {
-      profile = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        name: name || email.split('@')[0],
-        role: role,
-        companyName: role === 'recruiter' ? companyName : undefined,
-      };
-      db.profiles.save(profile);
-    } else {
-      profile.role = role;
-      if (role === 'recruiter' && !profile.companyName && companyName) {
-        profile.companyName = companyName;
-      }
-      db.profiles.save(profile);
-    }
-    
-    if (role === 'interviewee' && candidateCode) {
-      const interview = db.interviews.getByCode(candidateCode);
-      if (interview) {
-        const existingSessions = db.sessions.getByCandidateId(profile.id);
-        const alreadyActive = existingSessions.find(s => s.interviewId === interview.id && s.status === 'in_progress');
-        
-        if (!alreadyActive) {
-          const session = {
-            id: Math.random().toString(36).substr(2, 9),
-            interviewId: interview.id,
-            interviewTitle: interview.title || interview.jobRole,
-            companyName: interview.companyName,
-            candidateId: profile.id,
-            candidateName: profile.name,
-            candidateEmail: profile.email,
-            status: 'in_progress' as const,
-            decision: 'pending' as const,
-            startedAt: Date.now()
-          };
-          db.sessions.save(session);
-        }
-      } else {
-        alert('Assessment code invalid.');
+    setLoading(true);
+
+    try {
+      if (role === 'recruiter' && !isLogin && !companyName.trim()) {
+        alert("Company Name is required for Recruiter registration.");
+        setLoading(false);
         return;
       }
-    }
 
-    db.auth.login(profile);
-    onAuth();
+      let profile = await db.profiles.getByEmail(email);
+      
+      if (isLogin) {
+        // LOGIN FLOW
+        if (!profile) {
+          alert("Account not found. Please switch to Registration to create an account.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        // REGISTRATION FLOW
+        if (profile) {
+          alert("Account already exists with this email. Please Sign In.");
+          setLoading(false);
+          return;
+        }
+
+        // Create new profile
+        profile = {
+          id: Math.random().toString(36).substr(2, 9),
+          email,
+          name: name || email.split('@')[0],
+          role: role,
+          companyName: role === 'recruiter' ? companyName : undefined,
+        };
+      }
+      
+      // Handle Candidate Session Linking (Only if code is provided)
+      if (role === 'interviewee' && candidateCode) {
+        const interview = await db.interviews.getByCode(candidateCode);
+        if (interview) {
+          const existingSessions = await db.sessions.getByCandidateId(profile.id);
+          const alreadyActive = existingSessions.find(s => s.interviewId === interview.id && s.status === 'in_progress');
+          
+          if (!alreadyActive) {
+            const session = {
+              id: Math.random().toString(36).substr(2, 9),
+              interviewId: interview.id,
+              interviewTitle: interview.title || interview.jobRole,
+              companyName: interview.companyName,
+              candidateId: profile.id,
+              candidateName: profile.name,
+              candidateEmail: profile.email,
+              status: 'in_progress' as const,
+              decision: 'pending' as const,
+              startedAt: Date.now()
+            };
+            await db.sessions.save(session);
+          }
+        } else {
+          alert('Assessment code invalid.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      await db.auth.login(profile);
+      onAuth();
+    } catch (err) {
+      console.error(err);
+      alert("Authentication failed. Check console.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,7 +113,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
           <div onClick={onBack} className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto cursor-pointer active:scale-90 transition-all">
             <div className="w-6 h-6 bg-black rounded-md"></div>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">Sign In</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-white">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
           
           <div className="inline-flex bg-[#1C1C1E] p-1 rounded-xl border border-white/5">
             <button 
@@ -136,24 +163,28 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
           <Input 
             label="Password" 
             type="password" 
-            placeholder="••••••••" 
+            placeholder="Min. 5 chars" 
             value={password} 
             onChange={e => setPassword(e.target.value)} 
             required 
           />
           
           {role === 'interviewee' && (
-            <Input 
-              label="Assessment Access Code" 
-              placeholder="Enter Code" 
-              value={candidateCode} 
-              onChange={e => setCandidateCode(e.target.value.toUpperCase())} 
-              required={isLogin} 
-            />
+            <div className="pt-2 pb-2">
+                 <Input 
+                  label="Assessment Access Code" 
+                  subLabel="Optional"
+                  placeholder="Enter Code to Start Immediately" 
+                  value={candidateCode} 
+                  onChange={e => setCandidateCode(e.target.value.toUpperCase())} 
+                  required={false}
+                />
+                <p className="text-[10px] text-white/30 mt-2 px-1">Leave blank to go to your dashboard.</p>
+            </div>
           )}
 
           <div className="pt-2">
-            <Button type="submit" className="w-full h-12 rounded-xl" size="md">
+            <Button type="submit" className="w-full h-12 rounded-xl" size="md" loading={loading}>
               {isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </div>
@@ -163,7 +194,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
             onClick={() => setIsLogin(!isLogin)} 
             className="w-full text-center text-[10px] font-bold text-white/20 hover:text-white transition-colors uppercase tracking-[0.2em] py-2"
           >
-            {isLogin ? 'Switch to Registration' : 'Return to Login'}
+            {isLogin ? 'New here? Create Account' : 'Already have an account? Sign In'}
           </button>
         </form>
       </div>

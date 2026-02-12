@@ -13,20 +13,31 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const i = db.interviews.getAll().find(x => x.id === interviewId);
-    if (i) {
-      setInterview(i);
-      const allSessions = db.sessions.getAll();
-      setSessions(allSessions.filter(s => s.interviewId === interviewId));
-    }
+    const fetchData = async () => {
+        const allInterviews = await db.interviews.getAll();
+        const i = allInterviews.find(x => x.id === interviewId);
+        if (i) {
+          setInterview(i);
+          const allSessions = await db.sessions.getAll();
+          setSessions(allSessions.filter(s => s.interviewId === interviewId));
+        }
+    };
+    fetchData();
   }, [interviewId]);
 
-  const updateDecision = (decision: SessionDecision) => {
+  const updateDecision = async (decision: SessionDecision) => {
     if (!selectedSession) return;
     const updated = { ...selectedSession, decision };
-    db.sessions.update(updated);
+    await db.sessions.update(updated);
     setSelectedSession(updated);
     setSessions(prev => prev.map(s => s.id === updated.id ? updated : s));
+  };
+
+  const handleEmailCandidate = () => {
+    if (!selectedSession) return;
+    const subject = `Interview Result: ${interview?.jobRole} at ${interview?.companyName}`;
+    const body = `Hi ${selectedSession.candidateName},\n\nThank you for taking the time to interview with us.\n\n...`;
+    window.location.href = `mailto:${selectedSession.candidateEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const runEvaluation = async (session: InterviewSession) => {
@@ -40,15 +51,15 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
     setSelectedSession(session);
     setEvaluation(null); // Reset prev evaluation while loading
     
-    const existing = db.evaluations.getBySession(session.id);
-    if (existing) {
-      setEvaluation(existing);
-      setLoading(false);
-      return;
-    }
-
-    const responses = db.responses.getBySession(session.id);
     try {
+      const existing = await db.evaluations.getBySession(session.id);
+      if (existing) {
+        setEvaluation(existing);
+        setLoading(false);
+        return;
+      }
+
+      const responses = await db.responses.getBySession(session.id);
       const result = await aiService.evaluateCandidate(
         interview!.jobRole,
         interview!.parameters,
@@ -60,9 +71,10 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
         responseId: responses[0]?.id || 'none',
         ...result
       };
-      db.evaluations.save(ev);
+      await db.evaluations.save(ev);
       setEvaluation(ev);
     } catch (e) {
+      console.error(e);
       alert("Analysis failed.");
     } finally {
       setLoading(false);
@@ -83,7 +95,7 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
               <p className="text-[10px] md:text-[11px] font-bold text-[#007AFF] uppercase tracking-[0.4em]">Analytics Terminal</p>
               <h1 className="text-3xl md:text-5xl font-bold tracking-tighter text-white">{interview.title || interview.jobRole}</h1>
             </div>
-            <Button variant="glass" onClick={onBack} className="rounded-2xl px-6 md:px-8 h-12 font-bold border-white/10 hover:bg-white/10 w-full md:w-auto">Exit</Button>
+            <Button variant="ghost" onClick={onBack} className="rounded-2xl px-6 md:px-8 h-12 font-bold border border-white/10 hover:bg-white/10 w-full md:w-auto text-white">Exit</Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -170,9 +182,12 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
             </div>
           </div>
           
-          <div className="flex gap-3">
-             <Button onClick={() => updateDecision('passed')} className={`px-8 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest transition-all ${selectedSession.decision === 'passed' ? 'bg-[#007AFF] text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>Approve</Button>
-             <Button onClick={() => updateDecision('failed')} className={`px-8 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest transition-all ${selectedSession.decision === 'failed' ? 'bg-red-500 text-white' : 'bg-white/5 text-white/40 hover:text-white'}`}>Reject</Button>
+          <div className="flex flex-wrap gap-3">
+             <Button onClick={handleEmailCandidate} variant="ghost" className="px-6 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest bg-white/5 text-white border border-white/10 hover:bg-white/10">
+                Email
+             </Button>
+             <Button onClick={() => updateDecision('passed')} variant="ghost" className={`px-8 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest transition-all ${selectedSession.decision === 'passed' ? 'bg-[#007AFF] text-white hover:bg-[#0062cc]' : 'bg-white/5 text-white/40 hover:text-white hover:bg-white/10'}`}>Approve</Button>
+             <Button onClick={() => updateDecision('failed')} variant="ghost" className={`px-8 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest transition-all ${selectedSession.decision === 'failed' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-white/5 text-white/40 hover:text-white hover:bg-white/10'}`}>Reject</Button>
           </div>
         </div>
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../../components/Shared';
 import { db } from '../../services/db';
@@ -45,6 +44,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
   const [transcript, setTranscript] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'welcome' | 'live' | 'ending'>('welcome');
+  const [timeElapsed, setTimeElapsed] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -57,15 +57,30 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
   // Anti-Cheat & Session Init Logic
   useEffect(() => {
     mountedRef.current = true;
-    const sessions = db.sessions.getByCandidateId(user.id);
-    const active = sessions.find(s => s.status === 'in_progress');
-    if (active) {
-      setSession(active);
-      const i = db.interviews.getAll().find(x => x.id === active.interviewId);
-      if (i) setInterview(i);
-    }
+    const initSession = async () => {
+      const sessions = await db.sessions.getByCandidateId(user.id);
+      const active = sessions.find(s => s.status === 'in_progress');
+      if (active) {
+        setSession(active);
+        const allInterviews = await db.interviews.getAll();
+        const i = allInterviews.find(x => x.id === active.interviewId);
+        if (i) setInterview(i);
+      }
+    };
+    initSession();
     return () => { mountedRef.current = false; };
   }, [user.id]);
+
+  // Timer for HUD
+  useEffect(() => {
+    let interval: any;
+    if (step === 'live') {
+      interval = setInterval(() => {
+        setTimeElapsed(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [step]);
 
   // Anti-Cheat Event Listeners
   useEffect(() => {
@@ -103,7 +118,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
     }
   };
 
-  const terminateSession = (reason: string) => {
+  const terminateSession = async (reason: string) => {
     if (!session || !mountedRef.current) return;
     
     // Stop all tracks
@@ -112,7 +127,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
     }
 
     // Update DB
-    db.sessions.update({ 
+    await db.sessions.update({ 
         ...session, 
         status: 'terminated_early', 
         completedAt: Date.now(),
@@ -186,23 +201,27 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
             if (message.serverContent?.outputTranscription) {
               setTranscript(prev => [...prev, message.serverContent!.outputTranscription!.text]);
             }
+          },
+          onclose: () => {
+             console.log("AI Disconnected");
           }
         },
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          systemInstruction: `You are a professional AI interviewer for the ${interview.jobRole} position at ${interview.companyName}. You are interviewing ${user.name}. Start the conversation by introducing yourself and asking the first question: "${interview.questions[0].text}". Then continue with the rest of the questions: ${interview.questions.slice(1).map(q => q.text).join('; ')}. Be polite, concise, and focused.`
+          systemInstruction: `You are a professional AI interviewer for the ${interview.jobRole} position at ${interview.companyName}. You are interviewing ${user.name}. Start the conversation by introducing yourself and asking the first question: "${interview.questions[0].text}". Then continue with the rest of the questions: ${interview.questions.slice(1).map(q => q.text).join('; ')}. Be polite, concise, and focused. If the user indicates they are done or if you have finished the questions, say "Thank you, goodbye" and stop generating.`
         }
       });
     } catch (e) {
+      console.error(e);
       alert("Please allow camera and mic permissions.");
       setLoading(false);
     }
   };
 
-  const finishSession = () => {
+  const finishSession = async () => {
     setLoading(true);
-    db.responses.save({
+    await db.responses.save({
       id: Math.random().toString(36).substr(2, 9),
       sessionId: session!.id,
       questionId: 'verbal-assessment',
@@ -211,8 +230,8 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
       timestamp: Date.now()
     });
     
-    setTimeout(() => {
-      db.sessions.update({ ...session!, status: 'completed', completedAt: Date.now() });
+    setTimeout(async () => {
+      await db.sessions.update({ ...session!, status: 'completed', completedAt: Date.now() });
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       
       // Exit fullscreen
@@ -224,19 +243,29 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
     }, 1500);
   };
 
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   if (!interview || !session) return null;
 
   return (
-    <div className="h-screen w-screen bg-black text-white relative overflow-hidden">
+    <div className="h-screen w-screen bg-black text-white relative overflow-hidden font-mono">
       
       {step === 'welcome' && (
-        <div className="flex flex-col items-center justify-center h-full p-6 relative z-20">
+        <div className="flex flex-col items-center justify-center h-full p-6 relative z-20 font-sans">
             {/* Background Decor */}
             <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-[#007AFF]/10 to-transparent pointer-events-none"></div>
 
             <div className="max-w-xl w-full text-center space-y-12 glass p-8 md:p-16 rounded-[3rem] border border-white/10 animate-in zoom-in-95 duration-500 mx-4">
-              <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl">
-                <div className="w-12 h-12 bg-black rounded-xl"></div>
+              <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl overflow-hidden">
+                {user.logoUrl ? (
+                   <img src={user.logoUrl} className="w-full h-full object-cover" alt="Company Logo" />
+                ) : (
+                   <div className="w-12 h-12 bg-black rounded-xl"></div>
+                )}
               </div>
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-white leading-none">Cognitive Check</h1>
@@ -247,7 +276,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
                 <ul className="space-y-4 text-white/90 font-medium text-sm md:text-base">
                   <li className="flex items-center space-x-4">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span>Full Screen Required</span>
+                    <span>Biometric Feed Analysis Active</span>
                   </li>
                   <li className="flex items-center space-x-4">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
@@ -264,52 +293,88 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
 
       {step === 'live' && (
         <div className="absolute inset-0 z-0 bg-black">
-          {/* Immersive Camera Background */}
+          {/* Main Video Feed - Surveillance Style */}
           <video 
             ref={videoRef} 
             autoPlay 
             playsInline 
             muted 
-            className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" 
+            className="absolute inset-0 w-full h-full object-cover filter contrast-125 saturate-50" 
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none"></div>
+          {/* Scan Lines Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%] pointer-events-none"></div>
+          
+          {/* Vignette */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none z-10"></div>
 
-          {/* Top Bar */}
-          <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-10">
-             <div className="glass px-6 py-3 rounded-full border border-white/10 flex items-center gap-3">
-                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                 <span className="text-xs font-bold uppercase tracking-widest text-white">Live • {interview.jobRole}</span>
+          {/* HUD - Heads Up Display */}
+          <div className="absolute inset-0 z-20 p-6 flex flex-col justify-between pointer-events-none">
+             
+             {/* Top Bar */}
+             <div className="flex justify-between items-start">
+                 <div className="space-y-1">
+                     <div className="flex items-center gap-2 text-red-500">
+                         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                         <span className="text-xs font-bold tracking-[0.2em]">REC • {formatTime(timeElapsed)}</span>
+                     </div>
+                     <p className="text-[10px] text-white/40 tracking-widest">CAM-01 • {interview.code} • 1080p</p>
+                 </div>
+                 <div className="text-right">
+                     <p className="text-[10px] text-[#007AFF] tracking-widest animate-pulse">ANALYZING BIOMETRICS...</p>
+                     <div className="flex gap-1 justify-end mt-1">
+                        {[...Array(5)].map((_,i) => (
+                           <div key={i} className="w-1 h-3 bg-[#007AFF]" style={{ opacity: Math.random() }}></div>
+                        ))}
+                     </div>
+                 </div>
              </div>
-             <Button variant="danger" size="sm" onClick={finishSession} loading={loading} className="rounded-full px-6 shadow-lg border border-red-500/50">
-               End Session
-             </Button>
+
+             {/* Center Reticle (Subtle) */}
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-white/10 rounded-full opacity-30 flex items-center justify-center">
+                 <div className="w-full h-[1px] bg-white/20"></div>
+                 <div className="h-full w-[1px] bg-white/20 absolute"></div>
+                 <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#007AFF]"></div>
+                 <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#007AFF]"></div>
+                 <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#007AFF]"></div>
+                 <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#007AFF]"></div>
+             </div>
+
+             {/* Bottom Bar */}
+             <div className="flex justify-between items-end">
+                <div className="space-y-2">
+                   <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 rounded-lg">
+                      <p className="text-[9px] text-white/60 tracking-widest mb-1">VOICE STRESS ANALYSIS</p>
+                      <div className="w-40 h-8 flex items-end gap-1">
+                         {[...Array(20)].map((_,i) => (
+                            <div key={i} className="flex-1 bg-green-500/50" style={{ height: `${Math.random() * 100}%` }}></div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+
+                {/* Manual End Button - Pointer Events Enabled */}
+                <div className="pointer-events-auto">
+                    <Button 
+                       variant="danger" 
+                       size="lg" 
+                       onClick={finishSession} 
+                       loading={loading} 
+                       className="rounded-none border-2 border-red-500 bg-red-500/10 hover:bg-red-500/30 text-red-500 font-mono tracking-widest uppercase px-8 py-4"
+                    >
+                      [ Terminate Session ]
+                    </Button>
+                </div>
+             </div>
           </div>
 
-          {/* AI Overlay Panel */}
-          <div className="absolute bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-3xl glass p-8 md:p-10 rounded-[2.5rem] border border-white/20 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-10 duration-700 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-               {/* AI Avatar */}
-               <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-tr from-[#007AFF] to-cyan-400 shadow-[0_0_50px_rgba(0,122,255,0.4)] flex items-center justify-center relative flex-shrink-0">
-                  <div className="absolute inset-0 bg-white/30 blur-2xl rounded-full animate-pulse"></div>
-                  <div className="flex items-center space-x-1 h-8 relative z-10">
-                     {[...Array(4)].map((_, i) => (
-                       <div key={i} className="w-1.5 bg-white rounded-full animate-[bounce_1s_infinite]" style={{ height: `${40 + Math.random() * 60}%`, animationDelay: `${i * 0.15}s` }}></div>
-                     ))}
-                  </div>
-               </div>
-               
-               {/* Context */}
-               <div className="text-center md:text-left space-y-2">
-                 <p className="text-[10px] font-bold text-[#007AFF] uppercase tracking-[0.2em]">Interviewer</p>
-                 <p className="text-xl md:text-2xl font-bold text-white leading-tight">"I'm listening. Please detail your experience..."</p>
-               </div>
+          {/* AI Message Overlay (Subtle, at bottom) */}
+          <div className="absolute bottom-32 left-0 right-0 text-center z-10">
+             <p className="text-white/50 text-sm tracking-widest bg-black/50 inline-block px-4 py-1 backdrop-blur-sm rounded-full">
+               System Active. Audio is being processed.
+             </p>
           </div>
         </div>
       )}
-
-      {/* Footer Branding (Overlay) */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-30 pointer-events-none z-20 hidden md:block">
-        <span className="text-[9px] font-bold uppercase tracking-[0.4em] text-white">Cogniview Secure Browser v2.5</span>
-      </div>
     </div>
   );
 };

@@ -1,92 +1,199 @@
 
 import { Profile, Interview, InterviewSession, InterviewResponse, EvaluationResult } from '../types';
+import { supabase } from './supabase';
 
-const KEYS = {
-  PROFILES: 'cogniview_profiles_v2',
-  INTERVIEWS: 'cogniview_interviews_v2',
-  SESSIONS: 'cogniview_sessions_v2',
-  RESPONSES: 'cogniview_responses_v2',
-  EVALUATIONS: 'cogniview_evaluations_v2',
-  CURRENT_USER: 'cogniview_current_user_v2'
-};
+const CURRENT_USER_KEY = 'cogniview_current_user_v2';
 
-const get = <T,>(key: string, defaultValue: T): T => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultValue;
-};
+// Helpers to map between App (camelCase) and DB (snake_case)
+const mapProfileToDb = (p: Profile) => ({
+  id: p.id,
+  email: p.email,
+  name: p.name,
+  role: p.role,
+  company_name: p.companyName,
+  logo_url: p.logoUrl
+});
 
-const set = <T,>(key: string, value: T): void => {
-  localStorage.setItem(key, JSON.stringify(value));
-};
+const mapProfileFromDb = (p: any): Profile => ({
+  id: p.id,
+  email: p.email,
+  name: p.name,
+  role: p.role,
+  companyName: p.company_name,
+  logoUrl: p.logo_url
+});
+
+const mapInterviewToDb = (i: Interview) => ({
+  id: i.id,
+  recruiter_id: i.recruiterId,
+  company_name: i.companyName,
+  job_role: i.jobRole,
+  code: i.code,
+  title: i.title,
+  questions: i.questions, // JSON
+  parameters: i.parameters, // JSON
+  status: i.status,
+  created_at: new Date(i.createdAt).toISOString()
+});
+
+const mapInterviewFromDb = (i: any): Interview => ({
+  id: i.id,
+  recruiterId: i.recruiter_id,
+  companyName: i.company_name,
+  jobRole: i.job_role,
+  code: i.code,
+  title: i.title,
+  questions: i.questions,
+  parameters: i.parameters,
+  status: i.status,
+  createdAt: new Date(i.created_at).getTime()
+});
+
+const mapSessionToDb = (s: InterviewSession) => ({
+  id: s.id,
+  interview_id: s.interviewId,
+  interview_title: s.interviewTitle,
+  company_name: s.companyName,
+  candidate_id: s.candidateId,
+  candidate_name: s.candidateName,
+  candidate_email: s.candidateEmail,
+  status: s.status,
+  decision: s.decision,
+  started_at: new Date(s.startedAt).toISOString(),
+  completed_at: s.completedAt ? new Date(s.completedAt).toISOString() : null,
+  termination_reason: s.terminationReason
+});
+
+const mapSessionFromDb = (s: any): InterviewSession => ({
+  id: s.id,
+  interviewId: s.interview_id,
+  interviewTitle: s.interview_title,
+  companyName: s.company_name,
+  candidateId: s.candidate_id,
+  candidateName: s.candidate_name,
+  candidateEmail: s.candidate_email,
+  status: s.status,
+  decision: s.decision,
+  startedAt: new Date(s.started_at).getTime(),
+  completedAt: s.completed_at ? new Date(s.completed_at).getTime() : undefined,
+  terminationReason: s.termination_reason
+});
+
+const mapResponseToDb = (r: InterviewResponse) => ({
+  id: r.id,
+  session_id: r.sessionId,
+  question_id: r.questionId,
+  question_text: r.questionText,
+  response_text: r.responseText,
+  timestamp: new Date(r.timestamp).toISOString()
+});
+
+const mapResponseFromDb = (r: any): InterviewResponse => ({
+  id: r.id,
+  sessionId: r.session_id,
+  questionId: r.question_id,
+  questionText: r.question_text,
+  responseText: r.response_text,
+  timestamp: new Date(r.timestamp).getTime()
+});
+
+const mapEvaluationToDb = (e: EvaluationResult) => ({
+  id: e.id,
+  response_id: e.responseId,
+  overall_score: e.overallScore,
+  parameter_scores: e.parameterScores, // JSON
+  analysis: e.analysis // JSON
+});
+
+const mapEvaluationFromDb = (e: any): EvaluationResult => ({
+  id: e.id,
+  responseId: e.response_id,
+  overallScore: e.overall_score,
+  parameterScores: e.parameter_scores,
+  analysis: e.analysis
+});
 
 export const db = {
   profiles: {
-    getAll: () => get<Profile[]>(KEYS.PROFILES, []),
-    getById: (id: string) => get<Profile[]>(KEYS.PROFILES, []).find(p => p.id === id),
-    getByEmail: (email: string) => get<Profile[]>(KEYS.PROFILES, []).find(p => p.email === email),
-    save: (profile: Profile) => {
-      const all = get<Profile[]>(KEYS.PROFILES, []);
-      const idx = all.findIndex(p => p.id === profile.id);
-      if (idx > -1) all[idx] = profile;
-      else all.push(profile);
-      set(KEYS.PROFILES, all);
+    getByEmail: async (email: string) => {
+      const { data } = await supabase.from('profiles').select('*').eq('email', email).single();
+      return data ? mapProfileFromDb(data) : undefined;
+    },
+    save: async (profile: Profile) => {
+      await supabase.from('profiles').upsert(mapProfileToDb(profile));
     }
   },
   interviews: {
-    getAll: () => get<Interview[]>(KEYS.INTERVIEWS, []),
-    getByCode: (code: string) => get<Interview[]>(KEYS.INTERVIEWS, []).find(i => i.code === code.toUpperCase()),
-    save: (interview: Interview) => {
-      const all = get<Interview[]>(KEYS.INTERVIEWS, []);
-      const idx = all.findIndex(i => i.id === interview.id);
-      if (idx > -1) all[idx] = interview;
-      else all.push(interview);
-      set(KEYS.INTERVIEWS, all);
+    getAll: async () => {
+      const { data } = await supabase.from('interviews').select('*');
+      return (data || []).map(mapInterviewFromDb);
     },
-    delete: (id: string) => {
-      set(KEYS.INTERVIEWS, get<Interview[]>(KEYS.INTERVIEWS, []).filter(i => i.id !== id));
+    getByCode: async (code: string) => {
+      const { data } = await supabase.from('interviews').select('*').eq('code', code.toUpperCase()).single();
+      return data ? mapInterviewFromDb(data) : undefined;
+    },
+    save: async (interview: Interview) => {
+      await supabase.from('interviews').upsert(mapInterviewToDb(interview));
+    },
+    delete: async (id: string) => {
+      await supabase.from('interviews').delete().eq('id', id);
     }
   },
   sessions: {
-    save: (session: InterviewSession) => {
-      const all = get<InterviewSession[]>(KEYS.SESSIONS, []);
-      all.push(session);
-      set(KEYS.SESSIONS, all);
+    save: async (session: InterviewSession) => {
+      await supabase.from('sessions').upsert(mapSessionToDb(session));
     },
-    getAll: () => get<InterviewSession[]>(KEYS.SESSIONS, []),
-    getById: (id: string) => get<InterviewSession[]>(KEYS.SESSIONS, []).find(s => s.id === id),
-    getByCandidateId: (candidateId: string) => get<InterviewSession[]>(KEYS.SESSIONS, []).filter(s => s.candidateId === candidateId),
-    update: (session: InterviewSession) => {
-      const all = get<InterviewSession[]>(KEYS.SESSIONS, []);
-      const idx = all.findIndex(s => s.id === session.id);
-      if (idx > -1) {
-        all[idx] = session;
-        set(KEYS.SESSIONS, all);
-      }
+    getAll: async () => {
+      const { data } = await supabase.from('sessions').select('*');
+      return (data || []).map(mapSessionFromDb);
+    },
+    getById: async (id: string) => {
+      const { data } = await supabase.from('sessions').select('*').eq('id', id).single();
+      return data ? mapSessionFromDb(data) : undefined;
+    },
+    getByCandidateId: async (candidateId: string) => {
+      const { data } = await supabase.from('sessions').select('*').eq('candidate_id', candidateId);
+      return (data || []).map(mapSessionFromDb);
+    },
+    update: async (session: InterviewSession) => {
+      await supabase.from('sessions').upsert(mapSessionToDb(session));
     }
   },
   responses: {
-    save: (res: InterviewResponse) => {
-      const all = get<InterviewResponse[]>(KEYS.RESPONSES, []);
-      all.push(res);
-      set(KEYS.RESPONSES, all);
+    save: async (res: InterviewResponse) => {
+      await supabase.from('responses').upsert(mapResponseToDb(res));
     },
-    getBySession: (sessionId: string) => get<InterviewResponse[]>(KEYS.RESPONSES, []).filter(r => r.sessionId === sessionId)
+    getBySession: async (sessionId: string) => {
+      const { data } = await supabase.from('responses').select('*').eq('session_id', sessionId);
+      return (data || []).map(mapResponseFromDb);
+    }
   },
   evaluations: {
-    save: (ev: EvaluationResult) => {
-      const all = get<EvaluationResult[]>(KEYS.EVALUATIONS, []);
-      all.push(ev);
-      set(KEYS.EVALUATIONS, all);
+    save: async (ev: EvaluationResult) => {
+      await supabase.from('evaluations').upsert(mapEvaluationToDb(ev));
     },
-    getBySession: (sessionId: string) => {
-      const responses = db.responses.getBySession(sessionId);
-      const evals = get<EvaluationResult[]>(KEYS.EVALUATIONS, []);
-      return evals.find(e => responses.some(r => r.id === e.responseId));
+    getBySession: async (sessionId: string) => {
+      // Logic: Get response IDs for session, then find evaluation for one of them
+      const { data: responses } = await supabase.from('responses').select('id').eq('session_id', sessionId);
+      if (!responses || responses.length === 0) return undefined;
+      
+      const responseIds = responses.map(r => r.id);
+      const { data: evals } = await supabase.from('evaluations').select('*').in('response_id', responseIds).limit(1);
+      
+      return evals && evals.length > 0 ? mapEvaluationFromDb(evals[0]) : undefined;
     }
   },
   auth: {
-    getCurrentUser: () => get<Profile | null>(KEYS.CURRENT_USER, null),
-    login: (profile: Profile) => set(KEYS.CURRENT_USER, profile),
-    logout: () => localStorage.removeItem(KEYS.CURRENT_USER)
+    // Keep using LocalStorage for session persistence to avoid full Auth refactor
+    getCurrentUser: () => {
+      const data = localStorage.getItem(CURRENT_USER_KEY);
+      return data ? JSON.parse(data) : null;
+    },
+    login: async (profile: Profile) => {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(profile));
+      // Ensure profile exists in DB
+      await db.profiles.save(profile);
+    },
+    logout: () => localStorage.removeItem(CURRENT_USER_KEY)
   }
 };

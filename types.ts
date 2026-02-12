@@ -7,6 +7,7 @@ export interface Profile {
   name: string;
   role: UserRole;
   companyName?: string;
+  logoUrl?: string; // Base64 or URL
   theme?: {
     primary: string;
     accent: string;
