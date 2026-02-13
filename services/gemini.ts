@@ -3,7 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { EvaluationParameter } from '../types';
 
 // Initialize lazily to prevent crash on module load if env is missing
-const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// The user has requested to use GEMINI_API_KEY
+const getAi = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export const aiService = {
   async generateParameters(jobTitle: string): Promise<EvaluationParameter[]> {

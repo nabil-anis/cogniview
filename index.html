@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,6 +47,8 @@
   <script>
     if (typeof process === 'undefined') {
       window.process = { env: {} };
+    } else {
+      if (!window.process.env) window.process.env = {};
     }
   </script>
 

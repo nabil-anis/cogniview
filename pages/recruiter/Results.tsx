@@ -11,6 +11,7 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
   const [selectedSession, setSelectedSession] = useState<InterviewSession | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,13 +32,10 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
     await db.sessions.update(updated);
     setSelectedSession(updated);
     setSessions(prev => prev.map(s => s.id === updated.id ? updated : s));
-  };
-
-  const handleEmailCandidate = () => {
-    if (!selectedSession) return;
-    const subject = `Interview Result: ${interview?.jobRole} at ${interview?.companyName}`;
-    const body = `Hi ${selectedSession.candidateName},\n\nThank you for taking the time to interview with us.\n\n...`;
-    window.location.href = `mailto:${selectedSession.candidateEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    // Show toast notification "Email sent"
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   const runEvaluation = async (session: InterviewSession) => {
@@ -181,14 +179,6 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
               <p className="text-xs font-bold text-[#007AFF] uppercase tracking-[0.3em] mt-2">Comprehensive Analysis</p>
             </div>
           </div>
-          
-          <div className="flex flex-wrap gap-3">
-             <Button onClick={handleEmailCandidate} variant="ghost" className="px-6 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest bg-white/5 text-white border border-white/10 hover:bg-white/10">
-                Email
-             </Button>
-             <Button onClick={() => updateDecision('passed')} variant="ghost" className={`px-8 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest transition-all ${selectedSession.decision === 'passed' ? 'bg-[#007AFF] text-white hover:bg-[#0062cc]' : 'bg-white/5 text-white/40 hover:text-white hover:bg-white/10'}`}>Approve</Button>
-             <Button onClick={() => updateDecision('failed')} variant="ghost" className={`px-8 rounded-2xl h-12 text-xs font-bold uppercase tracking-widest transition-all ${selectedSession.decision === 'failed' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-white/5 text-white/40 hover:text-white hover:bg-white/10'}`}>Reject</Button>
-          </div>
         </div>
 
         {selectedSession.status === 'terminated_early' ? (
@@ -198,6 +188,7 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
              <p className="text-xl font-medium text-white/80 max-w-2xl mx-auto">"{selectedSession.terminationReason}"</p>
            </div>
         ) : evaluation ? (
+          <>
           /* XIAOMI BENTO GRID LAYOUT */
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mt-8">
             
@@ -268,7 +259,43 @@ export const Results: React.FC<{ interviewId: string, onBack: () => void }> = ({
             </div>
 
           </div>
+
+          {/* Action Buttons (Inline) */}
+          <div className="flex justify-center items-center gap-6 mt-16 mb-8">
+             <Button 
+                onClick={() => updateDecision('failed')} 
+                variant="ghost" 
+                className={`w-40 rounded-full h-14 text-xs font-bold uppercase tracking-widest transition-all ${
+                   selectedSession.decision === 'failed' ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'bg-[#1C1C1E] border border-white/10 text-white/40 hover:text-white hover:bg-white/10'
+                }`}
+             >
+                Reject
+             </Button>
+             <Button 
+                onClick={() => updateDecision('passed')} 
+                variant="ghost" 
+                className={`w-40 rounded-full h-14 text-xs font-bold uppercase tracking-widest transition-all ${
+                   selectedSession.decision === 'passed' ? 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)]' : 'bg-[#1C1C1E] border border-white/10 text-white/40 hover:text-white hover:bg-white/10'
+                }`}
+             >
+                Approve
+             </Button>
+          </div>
+          </>
         ) : null}
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed bottom-10 right-10 bg-white text-black px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-right duration-300 z-50 flex items-center gap-3">
+             <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+             </div>
+             <div>
+                <p className="text-sm font-bold">Email Sent</p>
+                <p className="text-xs text-black/60">Candidate has been notified.</p>
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );

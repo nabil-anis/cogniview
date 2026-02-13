@@ -2,21 +2,27 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/Shared';
 import { db } from '../../services/db';
-import { Profile, InterviewSession } from '../../types';
+import { Profile, InterviewSession, Interview } from '../../types';
 
 export const IntervieweeDashboard: React.FC<{ user: Profile, onNavigate: (page: string) => void }> = ({ user, onNavigate }) => {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
+  const [interviews, setInterviews] = useState<Record<string, Interview>>({});
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSessions = async () => {
-      const data = await db.sessions.getByCandidateId(user.id);
-      // Sort by newest first
-      setSessions(data.sort((a, b) => b.startedAt - a.startedAt));
+    const fetchData = async () => {
+      // Fetch sessions
+      const sessionData = await db.sessions.getByCandidateId(user.id);
+      setSessions(sessionData.sort((a, b) => b.startedAt - a.startedAt));
+
+      // Fetch interviews to get roles
+      const allInterviews = await db.interviews.getAll();
+      const interviewMap = allInterviews.reduce((acc, curr) => ({ ...acc, [curr.id]: curr }), {} as Record<string, Interview>);
+      setInterviews(interviewMap);
     };
-    fetchSessions();
+    fetchData();
   }, [user.id]);
 
   const handleJoin = async () => {
@@ -110,69 +116,79 @@ export const IntervieweeDashboard: React.FC<{ user: Profile, onNavigate: (page: 
               </div>
             ) : (
               <div className="space-y-4">
-                {sessions.map(s => (
-                  <div 
-                    key={s.id} 
-                    onClick={() => toggleExpand(s.id)}
-                    className={`glass rounded-[2rem] border transition-all cursor-pointer overflow-hidden ${expandedId === s.id ? 'bg-white/[0.08] border-white/20 shadow-xl' : 'border-white/5 hover:bg-white/[0.08]'}`}
-                  >
-                    <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-6 w-full md:w-auto">
-                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold border ${s.decision === 'passed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : s.decision === 'failed' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20'}`}>
-                            {s.companyName.charAt(0)}
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white">{s.interviewTitle}</h3>
-                                <p className="text-sm text-white/50">{s.companyName}</p>
-                            </div>
-                        </div>
+                {sessions.map(s => {
+                  const interview = interviews[s.interviewId];
+                  return (
+                    <div 
+                      key={s.id} 
+                      onClick={() => toggleExpand(s.id)}
+                      className={`glass rounded-[2rem] border transition-all cursor-pointer overflow-hidden ${expandedId === s.id ? 'bg-white/[0.08] border-white/20 shadow-xl' : 'border-white/5 hover:bg-white/[0.08]'}`}
+                    >
+                      <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                          <div className="flex items-center gap-6 w-full md:w-auto">
+                              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold border ${s.decision === 'passed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : s.decision === 'failed' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-[#007AFF]/10 text-[#007AFF] border-[#007AFF]/20'}`}>
+                              {s.companyName.charAt(0)}
+                              </div>
+                              <div>
+                                  <h3 className="text-xl font-bold text-white">{s.companyName}</h3>
+                                  <div className="flex flex-col">
+                                      <p className="text-sm font-semibold text-white/80">
+                                         {interview?.jobRole || s.interviewTitle}
+                                      </p>
+                                      {interview?.jobRole && s.interviewTitle !== interview.jobRole && (
+                                         <p className="text-xs text-white/40">{s.interviewTitle}</p>
+                                      )}
+                                  </div>
+                              </div>
+                          </div>
 
-                        <div className="flex items-center justify-between w-full md:w-auto gap-8">
-                            <div className="text-right hidden md:block">
-                                <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Date</p>
-                                <p className="text-sm font-bold text-white">{new Date(s.startedAt).toLocaleDateString()}</p>
-                            </div>
-                            <div className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                                s.decision === 'passed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
-                                s.decision === 'failed' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
-                                'bg-white/5 text-white/40 border-white/10'
-                            }`}>
-                                {s.decision}
-                            </div>
-                        </div>
+                          <div className="flex items-center justify-between w-full md:w-auto gap-8">
+                              <div className="text-right hidden md:block">
+                                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Date</p>
+                                  <p className="text-sm font-bold text-white">{new Date(s.startedAt).toLocaleDateString()}</p>
+                              </div>
+                              <div className={`px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                                  s.decision === 'passed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
+                                  s.decision === 'failed' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
+                                  'bg-white/5 text-white/40 border-white/10'
+                              }`}>
+                                  {s.decision}
+                              </div>
+                          </div>
+                      </div>
+                      
+                      {/* Expandable Message Area */}
+                      {expandedId === s.id && (
+                          <div className="px-6 pb-6 pt-0 animate-in slide-in-from-top-2 duration-300">
+                              <div className={`p-4 rounded-xl border ${
+                                  s.decision === 'passed' ? 'bg-green-500/10 border-green-500/20' : 
+                                  s.decision === 'failed' ? 'bg-red-500/10 border-red-500/20' : 
+                                  'bg-white/5 border-white/10'
+                              }`}>
+                                  {s.decision === 'passed' && (
+                                      <div className="flex items-center gap-3 text-green-400">
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                          <p className="font-medium text-sm">Congratulations, you passed! The recruitment team will be in touch shortly.</p>
+                                      </div>
+                                  )}
+                                  {s.decision === 'failed' && (
+                                      <div className="flex items-center gap-3 text-red-400">
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                          <p className="font-medium text-sm">You have failed. Better luck next time.</p>
+                                      </div>
+                                  )}
+                                  {s.decision === 'pending' && (
+                                      <div className="flex items-center gap-3 text-white/50">
+                                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                          <p className="font-medium text-sm">Evaluation in progress...</p>
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      )}
                     </div>
-                    
-                    {/* Expandable Message Area */}
-                    {expandedId === s.id && (
-                        <div className="px-6 pb-6 pt-0 animate-in slide-in-from-top-2 duration-300">
-                            <div className={`p-4 rounded-xl border ${
-                                s.decision === 'passed' ? 'bg-green-500/10 border-green-500/20' : 
-                                s.decision === 'failed' ? 'bg-red-500/10 border-red-500/20' : 
-                                'bg-white/5 border-white/10'
-                            }`}>
-                                {s.decision === 'passed' && (
-                                    <div className="flex items-center gap-3 text-green-400">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        <p className="font-medium text-sm">Congratulations, you passed! The recruitment team will be in touch shortly.</p>
-                                    </div>
-                                )}
-                                {s.decision === 'failed' && (
-                                    <div className="flex items-center gap-3 text-red-400">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        <p className="font-medium text-sm">You have failed. Better luck next time.</p>
-                                    </div>
-                                )}
-                                {s.decision === 'pending' && (
-                                    <div className="flex items-center gap-3 text-white/50">
-                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                        <p className="font-medium text-sm">Evaluation in progress...</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) }
           </div>

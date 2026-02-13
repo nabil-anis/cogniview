@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../../components/Shared';
 import { db } from '../../services/db';
@@ -158,7 +159,8 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
       outputNodeRef.current = outputCtx.createGain();
       outputNodeRef.current.connect(outputCtx.destination);
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Initialize AI with the requested env var
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         callbacks: {
@@ -168,7 +170,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
             setStep('live');
             setLoading(false);
 
-            // Start sending audio from mic to model
+            // Stream audio from the microphone to the model.
             const source = inputCtx.createMediaStreamSource(stream);
             const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
             scriptProcessor.onaudioprocess = (e) => {
