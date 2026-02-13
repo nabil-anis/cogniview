@@ -105,35 +105,35 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#007AFF]/5 blur-[120px] rounded-full pointer-events-none"></div>
+    <div className="h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#007AFF]/5 blur-[100px] rounded-full pointer-events-none"></div>
 
-      <div className="w-full max-w-[340px] space-y-8 animate-in fade-in duration-500 relative z-10">
-        <div className="text-center space-y-6">
-          <div onClick={onBack} className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto cursor-pointer active:scale-90 transition-all">
-            <div className="w-6 h-6 bg-black rounded-md"></div>
+      <div className="w-full max-w-[300px] space-y-6 animate-in fade-in duration-500 relative z-10">
+        <div className="text-center space-y-5">
+          <div onClick={onBack} className="w-10 h-10 bg-white rounded-[14px] flex items-center justify-center mx-auto cursor-pointer active:scale-90 transition-all shadow-lg">
+            <div className="w-5 h-5 bg-black rounded-md"></div>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+          <h2 className="text-xl font-bold tracking-tight text-white">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
           
-          <div className="inline-flex bg-[#1C1C1E] p-1 rounded-xl border border-white/5">
+          <div className="inline-flex bg-[#1C1C1E] p-0.5 rounded-lg border border-white/5">
             <button 
               type="button"
               onClick={() => setRole('recruiter')}
-              className={`px-7 py-2 rounded-lg text-[10px] font-bold transition-all duration-300 uppercase tracking-widest ${role === 'recruiter' ? 'bg-white text-black shadow-lg' : 'text-white/30 hover:text-white/60'}`}
+              className={`px-5 py-1.5 rounded-md text-[9px] font-bold transition-all duration-300 uppercase tracking-widest ${role === 'recruiter' ? 'bg-white text-black shadow-lg' : 'text-white/30 hover:text-white/60'}`}
             >
               Recruiter
             </button>
             <button 
               type="button"
               onClick={() => setRole('interviewee')}
-              className={`px-7 py-2 rounded-lg text-[10px] font-bold transition-all duration-300 uppercase tracking-widest ${role === 'interviewee' ? 'bg-white text-black shadow-lg' : 'text-white/30 hover:text-white/60'}`}
+              className={`px-5 py-1.5 rounded-md text-[9px] font-bold transition-all duration-300 uppercase tracking-widest ${role === 'interviewee' ? 'bg-white text-black shadow-lg' : 'text-white/30 hover:text-white/60'}`}
             >
               Candidate
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleAuthSubmit} className="space-y-4">
+        <form onSubmit={handleAuthSubmit} className="space-y-3">
           {!isLogin && (
             <Input 
               label="Full Name" 
@@ -170,21 +170,21 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
           />
           
           {role === 'interviewee' && (
-            <div className="pt-2 pb-2">
+            <div className="pt-1 pb-1">
                  <Input 
                   label="Assessment Access Code" 
                   subLabel="Optional"
-                  placeholder="Enter Code to Start Immediately" 
+                  placeholder="Enter Code" 
                   value={candidateCode} 
                   onChange={e => setCandidateCode(e.target.value.toUpperCase())} 
                   required={false}
                 />
-                <p className="text-[10px] text-white/30 mt-2 px-1">Leave blank to go to your dashboard.</p>
+                <p className="text-[9px] text-white/30 mt-1.5 px-1">Leave blank to go to your dashboard.</p>
             </div>
           )}
 
           <div className="pt-2">
-            <Button type="submit" className="w-full h-12 rounded-xl" size="md" loading={loading}>
+            <Button type="submit" className="w-full h-10 rounded-xl text-sm" size="md" loading={loading}>
               {isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </div>
@@ -192,7 +192,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuth, onBack, initialRole = 'recru
           <button 
             type="button" 
             onClick={() => setIsLogin(!isLogin)} 
-            className="w-full text-center text-[10px] font-bold text-white/20 hover:text-white transition-colors uppercase tracking-[0.2em] py-2"
+            className="w-full text-center text-[9px] font-bold text-white/20 hover:text-white transition-colors uppercase tracking-[0.2em] py-1"
           >
             {isLogin ? 'New here? Create Account' : 'Already have an account? Sign In'}
           </button>

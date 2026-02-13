@@ -27,10 +27,10 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const sizes = {
-    xs: "px-3 py-1.5 text-[10px] rounded-full",
-    sm: "px-4 py-2 text-xs rounded-full",
-    md: "px-6 py-3 text-sm rounded-full", // Pill shape
-    lg: "px-8 py-4 text-base rounded-[24px]" // Large rounded rect for main CTAs
+    xs: "px-2.5 py-1 text-[10px] rounded-full",
+    sm: "px-3 py-1.5 text-xs rounded-full",
+    md: "px-5 py-2 text-xs md:text-sm rounded-full", // Pill shape
+    lg: "px-6 py-3 text-sm rounded-[16px]" // Tighter large button
   };
 
   return (
@@ -52,22 +52,22 @@ export const Button: React.FC<ButtonProps> = ({
 
 export const Card: React.FC<{ children: React.ReactNode, className?: string, noPadding?: boolean }> = ({ children, className = "", noPadding = false }) => (
   // HyperOS Card: Dark grey surface, large rounded corners, very subtle border
-  <div className={`bg-[#1C1C1E] border border-white/[0.08] rounded-[32px] overflow-hidden ${noPadding ? '' : 'p-8'} ${className}`}>
+  <div className={`bg-[#1C1C1E] border border-white/[0.08] rounded-[24px] overflow-hidden ${noPadding ? '' : 'p-6'} ${className}`}>
     {children}
   </div>
 );
 
 export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label?: string, subLabel?: string }> = ({ label, subLabel, ...props }) => (
-  <div className="w-full space-y-3">
+  <div className="w-full space-y-2">
     {(label || subLabel) && (
       <div className="flex justify-between items-end px-1">
-        {label && <label className="text-sm font-medium text-white/80">{label}</label>}
+        {label && <label className="text-xs font-medium text-white/70">{label}</label>}
         {subLabel && <span className="text-[10px] text-white/40 uppercase tracking-wider">{subLabel}</span>}
       </div>
     )}
     <input 
       {...props} 
-      className={`w-full px-5 py-4 rounded-[20px] bg-[#2C2C2E] border-none text-white placeholder-white/20 text-sm outline-none focus:ring-2 focus:ring-[#007AFF]/50 transition-all ${props.className || ''}`}
+      className={`w-full px-4 py-3 rounded-[14px] bg-[#2C2C2E] border-none text-white placeholder-white/20 text-sm outline-none focus:ring-1 focus:ring-[#007AFF]/50 transition-all ${props.className || ''}`}
     />
   </div>
 );

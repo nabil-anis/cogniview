@@ -261,32 +261,32 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
             {/* Background Decor */}
             <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-[#007AFF]/10 to-transparent pointer-events-none"></div>
 
-            <div className="max-w-xl w-full text-center space-y-12 glass p-8 md:p-16 rounded-[3rem] border border-white/10 animate-in zoom-in-95 duration-500 mx-4">
-              <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl overflow-hidden">
+            <div className="max-w-lg w-full text-center space-y-8 glass p-10 rounded-[40px] border border-white/10 animate-in zoom-in-95 duration-500 mx-4">
+              <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center mx-auto shadow-2xl overflow-hidden">
                 {user.logoUrl ? (
                    <img src={user.logoUrl} className="w-full h-full object-cover" alt="Company Logo" />
                 ) : (
-                   <div className="w-12 h-12 bg-black rounded-xl"></div>
+                   <div className="w-10 h-10 bg-black rounded-xl"></div>
                 )}
               </div>
-              <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-white leading-none">Cognitive Check</h1>
-                <p className="text-white/60 text-lg font-medium">{interview.jobRole} @ {interview.companyName}</p>
+              <div className="space-y-3">
+                <h1 className="text-3xl font-bold tracking-tighter text-white leading-none">Cognitive Check</h1>
+                <p className="text-white/60 text-base font-medium">{interview.jobRole} @ {interview.companyName}</p>
               </div>
-              <div className="bg-white/5 rounded-3xl p-6 md:p-8 text-left space-y-4 border border-white/5">
-                <p className="font-bold text-white/40 text-xs uppercase tracking-[0.2em]">Security Protocols</p>
-                <ul className="space-y-4 text-white/90 font-medium text-sm md:text-base">
-                  <li className="flex items-center space-x-4">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              <div className="bg-white/5 rounded-2xl p-6 text-left space-y-3 border border-white/5">
+                <p className="font-bold text-white/40 text-[10px] uppercase tracking-[0.2em]">Security Protocols</p>
+                <ul className="space-y-3 text-white/90 font-medium text-xs md:text-sm">
+                  <li className="flex items-center space-x-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                     <span>Biometric Feed Analysis Active</span>
                   </li>
-                  <li className="flex items-center space-x-4">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  <li className="flex items-center space-x-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                     <span>Tab Switching Prohibited</span>
                   </li>
                 </ul>
               </div>
-              <Button size="lg" className="w-full h-16 text-lg rounded-2xl font-bold shadow-[0_0_40px_rgba(0,122,255,0.3)]" onClick={startSession} loading={loading}>
+              <Button size="lg" className="w-full h-12 text-base rounded-2xl font-bold shadow-[0_0_30px_rgba(0,122,255,0.3)]" onClick={startSession} loading={loading}>
                 Initialize Secure Session
               </Button>
             </div>
@@ -316,29 +316,29 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
              <div className="flex justify-between items-start">
                  <div className="space-y-1">
                      <div className="flex items-center gap-2 text-red-500">
-                         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                         <span className="text-xs font-bold tracking-[0.2em]">REC • {formatTime(timeElapsed)}</span>
+                         <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
+                         <span className="text-[10px] font-bold tracking-[0.2em]">REC • {formatTime(timeElapsed)}</span>
                      </div>
-                     <p className="text-[10px] text-white/40 tracking-widest">CAM-01 • {interview.code} • 1080p</p>
+                     <p className="text-[9px] text-white/40 tracking-widest">CAM-01 • {interview.code} • 1080p</p>
                  </div>
                  <div className="text-right">
-                     <p className="text-[10px] text-[#007AFF] tracking-widest animate-pulse">ANALYZING BIOMETRICS...</p>
+                     <p className="text-[9px] text-[#007AFF] tracking-widest animate-pulse">ANALYZING BIOMETRICS...</p>
                      <div className="flex gap-1 justify-end mt-1">
                         {[...Array(5)].map((_,i) => (
-                           <div key={i} className="w-1 h-3 bg-[#007AFF]" style={{ opacity: Math.random() }}></div>
+                           <div key={i} className="w-1 h-2 bg-[#007AFF]" style={{ opacity: Math.random() }}></div>
                         ))}
                      </div>
                  </div>
              </div>
 
              {/* Center Reticle (Subtle) */}
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-white/10 rounded-full opacity-30 flex items-center justify-center">
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border border-white/10 rounded-full opacity-30 flex items-center justify-center">
                  <div className="w-full h-[1px] bg-white/20"></div>
                  <div className="h-full w-[1px] bg-white/20 absolute"></div>
-                 <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#007AFF]"></div>
-                 <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#007AFF]"></div>
-                 <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#007AFF]"></div>
-                 <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#007AFF]"></div>
+                 <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#007AFF]"></div>
+                 <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#007AFF]"></div>
+                 <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#007AFF]"></div>
+                 <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#007AFF]"></div>
              </div>
 
              {/* Bottom Bar */}
@@ -346,7 +346,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
                 <div className="space-y-2">
                    <div className="bg-black/40 backdrop-blur-md border border-white/10 p-2 rounded-lg">
                       <p className="text-[9px] text-white/60 tracking-widest mb-1">VOICE STRESS ANALYSIS</p>
-                      <div className="w-40 h-8 flex items-end gap-1">
+                      <div className="w-32 h-6 flex items-end gap-0.5">
                          {[...Array(20)].map((_,i) => (
                             <div key={i} className="flex-1 bg-green-500/50" style={{ height: `${Math.random() * 100}%` }}></div>
                          ))}
@@ -361,7 +361,7 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
                        size="lg" 
                        onClick={finishSession} 
                        loading={loading} 
-                       className="rounded-none border-2 border-red-500 bg-red-500/10 hover:bg-red-500/30 text-red-500 font-mono tracking-widest uppercase px-8 py-4"
+                       className="rounded-none border-2 border-red-500 bg-red-500/10 hover:bg-red-500/30 text-red-500 font-mono tracking-widest uppercase px-6 py-3 text-xs"
                     >
                       [ Terminate Session ]
                     </Button>
@@ -370,8 +370,8 @@ export const InterviewRoom: React.FC<{ user: Profile, onComplete: () => void }> 
           </div>
 
           {/* AI Message Overlay (Subtle, at bottom) */}
-          <div className="absolute bottom-32 left-0 right-0 text-center z-10">
-             <p className="text-white/50 text-sm tracking-widest bg-black/50 inline-block px-4 py-1 backdrop-blur-sm rounded-full">
+          <div className="absolute bottom-24 left-0 right-0 text-center z-10">
+             <p className="text-white/50 text-xs tracking-widest bg-black/50 inline-block px-4 py-1 backdrop-blur-sm rounded-full">
                System Active. Audio is being processed.
              </p>
           </div>
